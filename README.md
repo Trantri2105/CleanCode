@@ -306,11 +306,17 @@ SOLID là một tập hợp các nguyên tắc thiết kế phần mềm trong l
 	    return result.Error
     }
 
-    func NewUserRepository(db *gorm.DB, logger *zap.Logger) UserRepository {
+    func NewUserRepository(db *gorm.DB, logger *zap.Logger) (UserRepository, error) {
+	    if db == nil {
+		    return nil, errors.New("db must not be nil")
+	    }
+	    if logger == nil {
+		    return nil, errors.New("logger must not be nil")
+	    }
 	    return &userRepository{
 		    db:     db,
 		    logger: logger,
-	    }
+	    }, nil
     }
     ```
 
@@ -340,7 +346,16 @@ SOLID là một tập hợp các nguyên tắc thiết kế phần mềm trong l
 
 
     
-    func NewUserService(userRepo repository.UserRepository, jwt util.JwtUtil, logger *zap.Logger) UserService {
+    func NewUserService(userRepo repository.UserRepository, jwt util.JwtUtil, logger *zap.Logger) (UserService, error) {
+	    if userRepo == nil {
+		    return nil, errors.New("userRepo must not be nil")
+	    }
+	    if jwt == nil {
+		    return nil, errors.New("jwt must not be nil")
+    	}
+	    if logger == nil {
+		    return nil, errors.New("logger must not be nil")
+	    }
 	    return &userService{
 		    userRepo: userRepo,
 		    jwt:      jwt,
@@ -353,10 +368,15 @@ SOLID là một tập hợp các nguyên tắc thiết kế phần mềm trong l
 
 
 #### Dependency Injection
-- Dependency Injection là kỹ thuật để thiết kế và viết code thường gắn liền với dependency inversion. Nó cho phép các `struct` nhận các `dependency` của mình từ bên ngoài thay vì tự tạo và quản lý chúng.
-- Các `struct` thay vì tự tạo và quản lý các dependencies của mình thì các dependencies này sẽ được truyền vào từ bên ngoài (thông qua constructor, method hoặc trực tiếp qua field).
+- Dependency Injection là kỹ thuật thiết kế phần mềm trong đó một đối tượng nhận các dependency của nó từ bên ngoài thay vì tự tạo hay quản lý chúng.
+- Kỹ thuật này giúp triển khai nguyên lý Dependency Inversion, làm giảm sự phụ thuộc giữa các đối tượng thông qua việc giao tiếp qua `interface` thay vì các triển khai cụ thể.
+- Các `struct` thay vì tự tạo và quản lý các dependencies của mình thì các dependencies này sẽ được truyền vào từ bên ngoài thông qua `constructor` hoặc `method`.
 - Các cách để truyền denpendencies
-    - `Constructor Injection`: Phụ thuộc được truyền vào thông qua constructor của `struct`.
+    - `Constructor Injection`: 
+        - Dependency được truyền vào thông qua constructor của `struct`.
+        - Cách này được sử dụng khi `struct` cần có các dependency bắt buộc để hoạt động bình thường. 
+        - Cách này đảm bảo các đối tượng luôn ở trạng thái hợp lệ sau khi được khởi tạo và thể hiện rõ các dependencies cần thiết để `struct` hoạt động bình thường.
+        - Ta cần kiểm tra `nil` khi nhận dependencies để đảm bảo an toàn.
         ```go
         type userService struct {
 	        userRepo repository.UserRepository
@@ -364,7 +384,16 @@ SOLID là một tập hợp các nguyên tắc thiết kế phần mềm trong l
 	        logger   *zap.Logger
         }
 
-        func NewUserService(userRepo repository.UserRepository, jwt util.JwtUtil, logger *zap.Logger) UserService {
+        func NewUserService(userRepo repository.UserRepository, jwt util.JwtUtil, logger *zap.Logger) (UserService, error) {
+	        if userRepo == nil {
+		        return nil, errors.New("userRepo must not be nil")
+	        }
+	        if jwt == nil {
+		        return nil, errors.New("jwt must not be nil")
+    	    }
+	        if logger == nil {
+		        return nil, errors.New("logger must not be nil")
+	        }
 	        return &userService{
 		        userRepo: userRepo,
 		        jwt:      jwt,
@@ -372,8 +401,28 @@ SOLID là một tập hợp các nguyên tắc thiết kế phần mềm trong l
 	        }
         }
         ```
+    - `Property Injection (Setter Injection)`
+        - Dependency được truyền vào thông qua các hàm `setter`.
+        - Cách này được sử dụng chỉ khi dependency thực sự là tùy chọn (optional hoặc `struct` cần đến nó đã có sẵn default implementation của dependency này) hoặc khi ta cần thay đổi implementation của dependency trong vòng đời của đối tượng.
+        - Nhược điểm của cách này là không đảm bảo dependency sẽ tồn tại khi đoạn code cần đến chúng được thực thi.
+            ```go
+            func (u *userService) SetUserRepository(userRepo repository.UserRepository) {
+	            u.userRepo = userRepo
+            }
+            ```
 
-    - `Method Injection`: Phụ thuộc được truyền vào thông qua một phương thức.
+    - `Method Injection`
+        - Dependency sẽ được truyền thẳng vào các method cần đến nó dưới dạng tham số, cho phép chúng chỉ được sử dụng khi method đó được thực thi (chỉ tồn tại trong 1 lần gọi của method đó).
+        - Cách này được sử dụng khi các lần gọi method khác nhau cần các cách triển khai khác nhau của dependency hoặc cần truyền các dependency tạm thời chỉ cần thiết trong method đó.
+            ```go
+            func (u *userService) Register(ctx context.Context, user model.User, userRepo repository.UserRepository) error {
+	            // Process register business logic 
+            }
+            ```
+- Sử dụng dependency injection làm cho code tăng khả năng kiểm thử bằng cách dễ dàng thay thế các dependency thật bằng các mock hoặc stub trong testing.
+- Dependency Injection còn giúp code tăng khả năng mở rộng bằng cách dễ dàng thay đổi hoặc thêm mới behavior bằng cách thay đổi implementation được truyền vào.
+- Dễ dàng hơn khi viết code khi tách biệt trách nhiệm khởi tạo và sử dụng đối tượng. Các dependencies sẽ được khởi tạo và quản lý ở một file riêng biệt và được truyền vào các `struct` khi cần sử dụng đến.
+
 
 
 
