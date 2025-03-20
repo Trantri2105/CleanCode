@@ -423,8 +423,94 @@ SOLID là một tập hợp các nguyên tắc thiết kế phần mềm trong l
 - Dependency Injection còn giúp code tăng khả năng mở rộng bằng cách dễ dàng thay đổi hoặc thêm mới behavior bằng cách thay đổi implementation được truyền vào.
 - Dễ dàng hơn khi viết code khi tách biệt trách nhiệm khởi tạo và sử dụng đối tượng. Các dependencies sẽ được khởi tạo và quản lý ở một file riêng biệt và được truyền vào các `struct` khi cần sử dụng đến.
 
+## Design Pattern
+- Design Pattern là những giải pháp điển hình cho các vấn đề thường gặp trong thiết kế phần mềm. Chúng giống như những bản thiết kế có sẵn mà ta có thể tùy chỉnh để giải quyết một vấn đề thiết kế lặp đi lặp lại trong phần mềm.
+- Design Pattern không phải là một code cụ thể, mà là một khái niệm chung để giải quyết một vấn đề cụ thể. Ta có thể tuân theo chi tiết của design pattern và triển khai một giải pháp phù hợp với từng bài toán và vấn đề cụ thể.
 
+### Creational Pattern
+- Creational Design Patterns (Mẫu thiết kế tạo lập) là một nhóm các mẫu thiết kế trong lập trình hướng đối tượng, tập trung vào cách khởi tạo đối tượng. Các mẫu này giúp tạo đối tượng theo cách phù hợp với từng tình huống cụ thể.
 
+1. **Singleton**
+- Singleton là một mẫu thiết kế đảm bảo rằng một `struct` chỉ có một thực thể (instance) duy nhất và cung cấp một điểm truy cập toàn cục đến thực thể đó.
+- Thông thường, một singleton instance được tạo ra khi `struct` được khởi tạo lần đầu tiên. Để làm được điều này, ta định nghĩa một method `getInstance` chịu trách nhiệm cho việc tạo và trả về một instance duy nhất của `struct` này. Hàm này cũng phải trả về đúng một instance duy nhất trong trường hợp nhiều goroutine truy cập cùng lúc.
+- Dưới đây là ví dụ về cách implement pattern này
+    ```go
+    // Define a mutex to ensure thread safety during singleton creation
+    var lock = sync.Mutex{}
 
+    // Define the singleton struct
+    type single struct {
+    }
 
+    // Define a package-level variable to hold the singleton instance
+    var singleInstance *single
 
+    func getInstance() *single {
+	    // First check if instance already exists
+	    if singleInstance == nil {
+		    // Lock to prevent multiple goroutines from creating instances simultaneously
+		    lock.Lock()
+		    defer lock.Unlock()
+
+		    // Double-check if instance is still nil after acquiring the lock
+		    // (another goroutine might have created it while we were waiting for the lock)
+		    if singleInstance == nil {
+			    fmt.Println("Creating single instance now.")
+			    singleInstance = &single{}
+		    } else {
+			    fmt.Println("Single instance already created.")
+		    }
+	    } else {
+		    fmt.Println("Single instance already created.")
+	    }
+	    return singleInstance
+    }
+
+    func main() {
+	    wg := sync.WaitGroup{}
+	    for i := 0; i < 5; i++ {
+		    wg.Add(1)
+		    go func() {
+			    getInstance()
+			    wg.Done()
+		    }()
+	    }
+	    wg.Wait()
+    }
+    ```
+    ```
+    Creating single instance now.
+    Single instance already created.
+    Single instance already created.
+    Single instance already created.
+    Single instance already created.
+    ```
+
+2. **Abstract Factory**
+- Abstract Factory là một mẫu thiết kế giúp ta tạo ra một tập các đối tượng có liên quan, làm việc và tương thích với nhau mà không cần biết `struct` cụ thể của chúng.
+- Abstract Factory sẽ định nghĩa `interface` chứa các phương thức để tạo ra các đối tượng riêng biệt. Mỗi triển khai của `interface` này sẽ tạo ra các đối tượng theo cách riêng của mình, tạo ra các biến thể khác nhau của tập các đối tượng.
+- Client code sẽ làm việc với tập các `interface` của từng đối tượng, không làm việc với các triển khai cụ thể, việc này làm ta có thể dễ dàng thay đổi các tập đối tượng bằng các truyền vào một struct factory mới mà không phải thay đổi client code.
+- Cấu trúc của Abstract Factory
+
+    ![](./image.png)
+- Ta xét ví dụ sau đây
+
+    ![](./image2.png)
+    - Ví dụ trên áp dụng Abstract Factory để tạo ra các tập thành phần UI gồm button và checkbox cho các hệ điều hành khác nhau.
+    - `GUIFactory` là một `interface` định nghĩa các phương thức để tạo button và checkbox. `WinFactory` và `MacFactory` là hai triển khai của `interface` và tạo ra các button và checkbox khác nhau tương ứng với các hệ điều hành khác nhau.
+    - Application sẽ sử dụng interface `GUIFactory` để tạo các thành phần UI và làm việc với chúng sử dụng interface `Checkbox` và `Button` mà không phụ thuộc vào cài đặt cụ thể. Việc này làm ta có thể dễ dàng chuyển đổi các tập thành phần UI giữa các hệ điều hành khác nhau.
+
+### Structural Pattern
+- Structural Pattern là một loạt các design pattern tập trung vào cách kết hợp các đối tượng và struct thành những cấu trúc lớn hơn, đồng thời vẫn giữ cho các cấu trúc này linh hoạt và hiệu quả.
+
+1. **Proxy**
+- Proxy là một mẫu thiết kế cho phép cung cấp một đối tượng thay thế hoặc đại diện cho đối tượng gốc. Đối tượng này sẽ kiểm soát quyền truy cập vào đối tượng gốc, cho phép ta thực hiện một số thao tác trước hoặc sau khi yêu cầu được chuyển đến đối tượng gốc.
+- Ta sẽ tạo một struct mới (proxy) đại diện cho struct gốc cung cấp các phương thức giống như struct gốc (implement cùng interface với struct gốc). Khi một đoạn code cần dùng đến struct gốc, ta truyền struct proxy vào thay vì struct gốc. Khi đó, struct proxy này sẽ nhận các yêu cầu, nó sẽ thực hiện một số thao tác xử lý trước khi chuyển tiếp yêu cầu đến struct gốc.
+- Pattern này giúp chúng ta thêm một số chức năng, thao tác xử lý mà không phải thay đổi các đoạn code, struct có sẵn.
+- Cấu trúc
+
+    ![](./image4.png)
+
+- Proxy Pattern có nhiều ứng dụng như lazy initialization (virtual proxy),access control (protection proxy), logging requests (logging proxy), caching request results (caching proxy),...
+
+2. 
