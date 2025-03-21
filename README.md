@@ -511,6 +511,93 @@ SOLID là một tập hợp các nguyên tắc thiết kế phần mềm trong l
 
     ![](./image4.png)
 
-- Proxy Pattern có nhiều ứng dụng như lazy initialization (virtual proxy),access control (protection proxy), logging requests (logging proxy), caching request results (caching proxy),...
+- Các ứng dụng của Proxy Pattern
+    - Lazy initialization (virtual proxy): Khi ta có một đối tượng sử dụng lớn tài nguyên của hệ thống và có thể gây lãng phí khi luôn hoạt động, ta có thể sử dụng Proxy để trì hoãn việc khởi tạo đối tượng cho đến khi cần sử dụng đến.
+    - Access control (protection proxy): Kiểm soát và giới hạn truy cập đến đối tượng gốc.
+    - Local execution of a remote service (remote proxy): Sử dụng khi cần sử dụng một đối tượng đặt trên máy chủ ở xa.
+    - Logging requests (logging proxy): Sử dụng để ghi lại cái yêu cầu gửi đến đối tượng gốc.
+    - Caching request results (caching proxy): Sử dụng để tạm thời lưu trữ kết quả của các yêu cầu được gửi đến đối tượng gốc, cải thiện hiệu năng và tốc độ xử lý yêu cầu.
 
-2. 
+2. **Facade**
+
+- Facade là một mẫu thiết kế cung cấp một giao diện đơn giản hơn cho một thư viện, framework hay một hệ thống phức tạp.
+- Khi ta tích hợp hoặc sử dụng một thư viện phức tạp, ta sẽ phải khởi tạo, quản lý và sử dụng một tập hợp các đối tượng thuộc về một thư viện đó, thực thi các method theo đúng thứ tự,... Kết quả, code và logic của chúng ta sẽ phải phụ thuộc chặt chẽ vào cách triển khai chi tiết của bên thứ ba, làm cho code của chúng ta khó hiểu và khó bảo trì.
+- Ý tưởng chính của Facade Pattern là tạo ra một `struct` Facade để cung cấp các phương thức đơn giản hóa việc tương tác với các hệ thống phức tạp bên trong. Thay vì phải làm việc trực tiếp với nhiều `struct` và đối tượng phức tạp, ta chỉ cần sử dụng lớp Facade để thực hiện các tác vụ mong muốn. 
+`Struct` Facde này có thể sẽ không cung cấp toàn bộ các chức năng như hệ thống bên trong, nó sẽ chỉ cung cấp các chức năng mà ta thực sự cần đến.
+- Pattern này đặc biệt hữu dụng khi ta cần tích hợp một thư viện gồm nhiều chức năng phức tạp nhưng chỉ sử dụng đến một phần nhỏ của các chức năng đó.
+    
+    ![](img_2.png)
+
+- Giả sử chúng ta có một hệ thống media phức tạp gồm các thành phần `audio player`, `video player`, `screen manager`. Client sẽ phải tương tác với từng thành phần này, kết hợp chúng với nhau để thực hiện các chức năng mong muốn. Ta có thể tạo ra một `struct` facade cung cấp một `interface` đơn giản cung cấp một số chức năng thường dùng.
+    ```go
+    package main
+
+    import "fmt"
+
+    // Subsystem components
+    type AudioPlayer struct {
+    }
+
+    func (a *AudioPlayer) PlayAudio() {
+        fmt.Println("Playing audio...")
+    }
+
+    type VideoPlayer struct {
+    }
+
+    func (v *VideoPlayer) PlayVideo() {
+        fmt.Println("Playing video...")
+    }
+
+    type ScreenManager struct {
+    }
+
+    func (s *ScreenManager) ShowScreen() {
+        fmt.Println("Showing screen...")
+    }
+
+    // MultimediaFacade encapsulates the complex subsystem
+    type MultimediaFacade struct {
+        audioPlayer   *AudioPlayer
+        videoPlayer   *VideoPlayer
+        screenManager *ScreenManager
+    }
+
+    func NewMultimediaFacade() *MultimediaFacade {
+        return &MultimediaFacade{
+            audioPlayer:   &AudioPlayer{},
+            videoPlayer:   &VideoPlayer{},
+            screenManager: &ScreenManager{},
+        }
+    }
+
+    // Simplified methods for clients
+    func (m *MultimediaFacade) PlayMovie() {
+        m.audioPlayer.PlayAudio()
+        m.videoPlayer.PlayVideo()
+        m.screenManager.ShowScreen()
+    }
+
+    func main() {
+        multimediaSystem := NewMultimediaFacade()
+
+	    // Using the Facade to play a movie
+	    fmt.Println("Playing a movie...")
+	    multimediaSystem.PlayMovie()
+    }
+    ```
+  
+### Behavioral Pattern
+- Behavioral Pattern tập trung vào cách các đối tượng giao tiếp và phân phối trách nhiệm giữa các lớp và đối tượng. Các mẫu thiết kế này quan tâm đến thuật toán và phân công trách nhiệm giữa các đối tượng.
+
+#### Chain of Responsibility
+- Chain of Responsibility là một mẫu thiết kế giúp ta truyền một yêu cầu thông qua một chuỗi các hàm xử lý (handlers). Khi nhận được một request, mỗi hàm này sẽ quyết định xử lí nó hay truyền request này đến các hàm xử lí khác trong chuỗi.
+- Giả sử ta có chức năng xử lí tạo một đơn hàng mới, trước khi cho phép người dùng tạo một đơn hàng mới, ta cần phải kiểm tra xem người dùng đã được xác thực hay chưa. Nếu mà người dùng đã được xác thực, ta sẽ cho phép tạo đơn hàng, nếu không thì sẽ dừng request lại và báo lỗi. Ta có thể để tất cả các bước tiền xử lý này vào trong một hàm nhưng nếu có thêm các yêu cầu khác như validate, caching, ... trước khi yêu cầu được xử lí thì hàm này sẽ càng ngày càng phình to ra, gây khó trong việc đọc hiểu và bảo trì.
+
+    ![](img.png)
+
+- Thay vào đó, ta áp dụng Chain of Responsibility, tạo ra một chuỗi các hàm xử lý độc lập, mỗi hàm chịu trách nhiệm xử lý, cung cấp một hành vi cụ thể. Các hàm này sẽ được kết nối với nhau, tạo thành một chuỗi xử lý. 
+
+    ![](img_1.png)
+
+
