@@ -1,4 +1,15 @@
 # Clean Code
+## Table of Contents
+- [SOLID](#solid)
+  - [Single Responsibility Principle](#single-responsibility-principle)
+  - [Open/Closed Principle](#openclosed-principle)
+  - [Liskov Substitution Principle](#liskov-substitution-principle)
+  - [Interface Segregation Principle](#interface-segregation-principle)
+  - [Dependency Inversion Principle](#dependency-inversion-principle)
+- [Design Pattern](#design-pattern)
+  - [Creational Pattern](#creational-pattern)
+  - [Structural Pattern](#structural-pattern)
+  - [Behavioral Pattern](#behavioral-pattern)
 ## SOLID
 SOLID là một tập hợp các nguyên tắc thiết kế phần mềm trong lập trình hướng đối tượng được đưa ra bởi Robert C. Martin, giúp các nhà phát triển tạo ra phần mềm dễ bảo trì và mở rộng. Mặc dù Go không phải là ngôn ngữ hoàn toàn hướng đối tượng, nhưng nguyên tắc này vẫn có thể áp dụng hiệu quả trong việc thiết kế code với Go.
 ### Single Responsibility Principle
